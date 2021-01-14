@@ -6,6 +6,7 @@
 
 package com.soapboxrace.core.bo;
 
+import com.soapboxrace.core.bo.util.GameFormatting;
 import com.soapboxrace.core.dao.EventDAO;
 import com.soapboxrace.core.dao.LobbyDAO;
 import com.soapboxrace.core.dao.LobbyEntrantDAO;
@@ -84,6 +85,12 @@ public class LobbyBO {
         List<LobbyEntity> lobbys = lobbyDao.findByEventStarted(eventEntity);
         if (lobbys.size() == 0) {
             createLobby(personaEntity.getPersonaId(), eventId, eventEntity.getCarClassHash(), false);
+            if (eventEntity.getCarClassHash() != 607077938) {
+                // For non-open lobbies, send a message to online players
+                openFireRestApiCli.sendChatAnnouncement(
+                        String.format("%s is looking for racers on %s (%s class)", personaEntity.getName(),
+                                eventEntity.getName(), GameFormatting.carClassHashToName(eventEntity.getCarClassHash())));
+            }
         } else {
             joinLobby(personaEntity, lobbys);
         }
