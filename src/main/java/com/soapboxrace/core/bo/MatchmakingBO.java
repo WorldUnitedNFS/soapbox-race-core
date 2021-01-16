@@ -37,8 +37,10 @@ public class MatchmakingBO {
 
     private final Map<Long, Integer> queuedPlayers = new ConcurrentHashMap<>();
     private final Map<Long, List<Long>> ignoredEvents = new ConcurrentHashMap<>();
+
     @EJB
     private PersonaDAO personaDAO;
+
     @EJB
     private LobbyMessagingBO lobbyMessagingBO;
 
@@ -120,7 +122,7 @@ public class MatchmakingBO {
      * @param personaId the persona ID
      */
     public void resetIgnoredEvents(long personaId) {
-        getIgnoredEvents(personaId).remove(personaId);
+        ignoredEvents.remove(personaId);
     }
 
     /**
