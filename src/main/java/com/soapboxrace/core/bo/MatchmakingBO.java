@@ -6,17 +6,19 @@
 
 package com.soapboxrace.core.bo;
 
+import com.soapboxrace.core.dao.PersonaDAO;
 import com.soapboxrace.core.events.PersonaPresenceUpdated;
-import io.lettuce.core.KeyValue;
-import io.lettuce.core.ScanIterator;
-import io.lettuce.core.api.StatefulRedisConnection;
-import org.slf4j.Logger;
+import com.soapboxrace.core.jpa.EventEntity;
+import com.soapboxrace.core.jpa.LobbyEntity;
+import com.soapboxrace.core.jpa.PersonaEntity;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
 import javax.ejb.*;
 import javax.enterprise.event.Observes;
-import javax.inject.Inject;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Responsible for managing the multiplayer matchmaking system.
@@ -33,34 +35,12 @@ import javax.inject.Inject;
 @Lock(LockType.READ)
 public class MatchmakingBO {
 
+    private final Map<Long, Integer> queuedPlayers = new ConcurrentHashMap<>();
+    private final Map<Long, List<Long>> ignoredEvents = new ConcurrentHashMap<>();
     @EJB
-    private RedisBO redisBO;
-
+    private PersonaDAO personaDAO;
     @EJB
-    private ParameterBO parameterBO;
-
-    @Inject
-    private Logger logger;
-
-    private StatefulRedisConnection<String, String> redisConnection;
-
-    @PostConstruct
-    public void initialize() {
-        if (this.parameterBO.getBoolParam("ENABLE_REDIS")) {
-            this.redisConnection = this.redisBO.getConnection();
-            logger.info("Initialized matchmaking system");
-        } else {
-            logger.warn("Redis is not enabled! Matchmaking queue is disabled.");
-        }
-    }
-
-    @PreDestroy
-    public void shutdown() {
-        if (this.redisConnection != null) {
-            this.redisConnection.sync().del("matchmaking_queue");
-        }
-        logger.info("Shutdown matchmaking system");
-    }
+    private LobbyMessagingBO lobbyMessagingBO;
 
     /**
      * Adds the given persona ID to the queue under the given car class.
@@ -69,9 +49,7 @@ public class MatchmakingBO {
      * @param carClass  The class of the persona's current car.
      */
     public void addPlayerToQueue(Long personaId, Integer carClass) {
-        if (this.redisConnection != null) {
-            this.redisConnection.sync().hset("matchmaking_queue", personaId.toString(), carClass.toString());
-        }
+        queuedPlayers.put(personaId, carClass);
     }
 
     /**
@@ -80,34 +58,50 @@ public class MatchmakingBO {
      * @param personaId The ID of the persona to remove from the queue.
      */
     public void removePlayerFromQueue(Long personaId) {
-        if (this.redisConnection != null) {
-            this.redisConnection.sync().hdel("matchmaking_queue", personaId.toString());
-        }
+        queuedPlayers.remove(personaId);
     }
 
     /**
-     * Gets the ID of a persona from the queue, as long as that persona is listed under the given car class.
+     * Send invitations to players who qualify for a lobby
      *
-     * @param carClass The car class hash to find a persona in.
-     * @return The ID of the persona, or {@literal -1} if no persona was found.
+     * @param lobbyEntity The new lobby
      */
-    public Long getPlayerFromQueue(Integer carClass) {
-        if (this.redisConnection == null)
-            return -1L;
+    public void sendPotentialLobbyInvites(LobbyEntity lobbyEntity) {
+        EventEntity event = lobbyEntity.getEvent();
 
-        ScanIterator<KeyValue<String, String>> iterator = ScanIterator.hscan(this.redisConnection.sync(), "matchmaking_queue");
-        long personaId = -1L;
+        for (Map.Entry<Long, Integer> queueEntry : this.queuedPlayers.entrySet()) {
+            Integer queueClass = queueEntry.getValue();
 
-        while (iterator.hasNext()) {
-            KeyValue<String, String> keyValue = iterator.next();
+            // Make sure the queued player can actually join with the car they queued with
+            if (!queueClass.equals(event.getCarClassHash()) && event.getCarClassHash() != 607077938) {
+                continue;
+            }
+            Long queuePersonaId = queueEntry.getKey();
 
-            if (carClass == 607077938 || Integer.parseInt(keyValue.getValue()) == carClass) {
-                personaId = Long.parseLong(keyValue.getKey());
-                break;
+            // Don't invite the player to their own lobby - this shouldn't ever happen, but you never know!
+            if (queuePersonaId.equals(lobbyEntity.getPersonaId())) {
+                continue;
+            }
+
+            // Don't give players events that they don't want
+            if (isEventIgnored(queuePersonaId, event.getId())) {
+                continue;
+            }
+            PersonaEntity queuePersona = personaDAO.find(queuePersonaId);
+            int queuePersonaLevel = queuePersona.getLevel();
+
+            // Don't give players events that they can't join
+            if (queuePersonaLevel < event.getMinLevel() || queuePersonaLevel > event.getMaxLevel()) {
+                // Add the event to the player's ignore-list so we can skip it next time
+                ignoreEvent(queuePersonaId, event.getId());
+                continue;
+            }
+
+            // Finally, add a bit of randomness to the mix, so we don't end up sending the same invite to everyone.
+            if (ThreadLocalRandom.current().nextBoolean()) {
+                lobbyMessagingBO.sendLobbyInvitation(lobbyEntity, queuePersonaId, event.getLobbyCountdownTime());
             }
         }
-
-        return personaId;
     }
 
     /**
@@ -117,9 +111,7 @@ public class MatchmakingBO {
      * @param eventId   the event ID
      */
     public void ignoreEvent(long personaId, long eventId) {
-        if (this.redisConnection != null) {
-            this.redisConnection.sync().sadd("ignored_events." + personaId, Long.toString(eventId));
-        }
+        getIgnoredEvents(personaId).add(eventId);
     }
 
     /**
@@ -128,9 +120,7 @@ public class MatchmakingBO {
      * @param personaId the persona ID
      */
     public void resetIgnoredEvents(long personaId) {
-        if (this.redisConnection != null) {
-            this.redisConnection.sync().del("ignored_events." + personaId);
-        }
+        getIgnoredEvents(personaId).remove(personaId);
     }
 
     /**
@@ -141,16 +131,16 @@ public class MatchmakingBO {
      * @return {@code true} if the given event ID is in the list of ignored events for the given persona ID
      */
     public boolean isEventIgnored(long personaId, long eventId) {
-        if (this.redisConnection != null) {
-            return this.redisConnection.sync().sismember("ignored_events." + personaId, Long.toString(eventId));
-        }
-
-        return false;
+        return getIgnoredEvents(personaId).contains(eventId);
     }
 
     @Asynchronous
     @Lock(LockType.READ)
     public void handlePersonaPresenceUpdated(@Observes PersonaPresenceUpdated personaPresenceUpdated) {
         removePlayerFromQueue(personaPresenceUpdated.getPersonaId());
+    }
+
+    private List<Long> getIgnoredEvents(long personaId) {
+        return ignoredEvents.computeIfAbsent(personaId, k -> new ArrayList<>());
     }
 }

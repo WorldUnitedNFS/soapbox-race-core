@@ -6,7 +6,6 @@
 
 package com.soapboxrace.core.bo;
 
-import com.soapboxrace.core.bo.util.GameFormatting;
 import com.soapboxrace.core.dao.EventDAO;
 import com.soapboxrace.core.dao.LobbyDAO;
 import com.soapboxrace.core.dao.LobbyEntrantDAO;
@@ -84,13 +83,13 @@ public class LobbyBO {
 
         List<LobbyEntity> lobbys = lobbyDao.findByEventStarted(eventEntity);
         if (lobbys.size() == 0) {
-            createLobby(personaEntity.getPersonaId(), eventId, eventEntity.getCarClassHash(), false);
-            if (eventEntity.getCarClassHash() != 607077938) {
-                // For non-open lobbies, send a message to online players
-                openFireRestApiCli.sendChatAnnouncement(
-                        String.format("%s is looking for racers on %s (%s class)", personaEntity.getName(),
-                                eventEntity.getName(), GameFormatting.carClassHashToName(eventEntity.getCarClassHash())));
-            }
+            createLobby(personaEntity.getPersonaId(), eventId, false);
+//            if (eventEntity.getCarClassHash() != 607077938) {
+//                // For non-open lobbies, send a message to online players
+//                openFireRestApiCli.sendChatAnnouncement(
+//                        String.format("%s is looking for racers on %s (%s class)", personaEntity.getName(),
+//                                eventEntity.getName(), GameFormatting.carClassHashToName(eventEntity.getCarClassHash())));
+//            }
         } else {
             joinLobby(personaEntity, lobbys);
         }
@@ -100,22 +99,20 @@ public class LobbyBO {
         List<Long> personaIdList = openFireRestApiCli.getAllPersonaByGroup(creatorPersonaId);
         EventEntity eventEntity = eventDao.find(eventId);
         if (!personaIdList.isEmpty()) {
-            createLobby(creatorPersonaId, eventId, eventEntity.getCarClassHash(), true);
+            createLobby(creatorPersonaId, eventId, true);
 
             LobbyEntity lobbyEntity = lobbyDao.findByEventAndPersona(eventEntity, creatorPersonaId);
             if (lobbyEntity != null) {
                 for (Long recipientPersonaId : personaIdList) {
                     if (!recipientPersonaId.equals(creatorPersonaId)) {
-                        PersonaEntity recipientPersonaEntity = personaDao.find(recipientPersonaId);
-
-                        lobbyMessagingBO.sendLobbyInvitation(lobbyEntity, recipientPersonaEntity, eventEntity.getLobbyCountdownTime());
+                        lobbyMessagingBO.sendLobbyInvitation(lobbyEntity, recipientPersonaId, eventEntity.getLobbyCountdownTime());
                     }
                 }
             }
         }
     }
 
-    public LobbyEntity createLobby(Long personaId, int eventId, int carClassHash, Boolean isPrivate) {
+    public LobbyEntity createLobby(Long personaId, int eventId, Boolean isPrivate) {
         EventEntity eventEntity = eventDao.find(eventId);
 
         LobbyEntity lobbyEntity = new LobbyEntity();
@@ -125,23 +122,11 @@ public class LobbyBO {
         lobbyEntity.setStartedTime(LocalDateTime.now());
 
         lobbyDao.insert(lobbyEntity);
-
-        PersonaEntity personaEntity = personaDao.find(personaId);
-        lobbyMessagingBO.sendLobbyInvitation(lobbyEntity, personaEntity, 10000);
+        lobbyMessagingBO.sendLobbyInvitation(lobbyEntity, personaId, 10000);
+        matchmakingBO.removePlayerFromQueue(personaId);
 
         if (!isPrivate) {
-            for (int i = 1; i <= lobbyEntity.getEvent().getMaxPlayers() - 1; i++) {
-                if (lobbyEntity.getEntrants().size() >= lobbyEntity.getEvent().getMaxPlayers()) break;
-
-                Long queuePersonaId = matchmakingBO.getPlayerFromQueue(carClassHash);
-
-                if (!queuePersonaId.equals(-1L) && !matchmakingBO.isEventIgnored(queuePersonaId, eventId)) {
-                    if (lobbyEntity.getEntrants().size() < lobbyEntity.getEvent().getMaxPlayers()) {
-                        PersonaEntity queuePersona = personaDao.find(queuePersonaId);
-                        lobbyMessagingBO.sendLobbyInvitation(lobbyEntity, queuePersona, eventEntity.getLobbyCountdownTime());
-                    }
-                }
-            }
+            matchmakingBO.sendPotentialLobbyInvites(lobbyEntity);
         }
 
         lobbyCountdownBO.scheduleLobbyStart(lobbyEntity);
@@ -175,7 +160,7 @@ public class LobbyBO {
             }
         }
         if (lobbyEntity != null) {
-            lobbyMessagingBO.sendLobbyInvitation(lobbyEntity, personaEntity, 10000);
+            lobbyMessagingBO.sendLobbyInvitation(lobbyEntity, personaEntity.getPersonaId(), 10000);
         }
     }
 

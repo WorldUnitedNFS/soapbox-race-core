@@ -94,7 +94,6 @@ public abstract class EventResultBO<TA extends ArbitrationPacket, TR extends Eve
                 nextLobbyEntity = lobbyBO.createLobby(
                         oldLobby.getPersonaId(),
                         oldLobby.getEvent().getId(),
-                        oldLobby.getEvent().getCarClassHash(),
                         oldLobby.getIsPrivate());
                 eventSessionEntity.setNextLobby(nextLobbyEntity);
             }
