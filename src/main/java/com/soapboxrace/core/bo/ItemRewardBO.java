@@ -81,7 +81,7 @@ public class ItemRewardBO {
             ProductEntity productEntity = inventoryItemEntity.getProductEntity();
             Integer useCount = wrappedInventoryItemReward.getUseCount();
             commerceItemTrans.setHash(productEntity.getHash());
-            commerceItemTrans.setTitle(productEntity.getProductTitle());
+            commerceItemTrans.setTitle(getAppropriateProductTitle(productEntity));
 
             if (useCount != -1) {
                 commerceItemTrans.setTitle(commerceItemTrans.getTitle() + " x" + useCount);
@@ -97,10 +97,14 @@ public class ItemRewardBO {
 
             CommerceItemTrans commerceItemTrans = new CommerceItemTrans();
             commerceItemTrans.setHash(productEntity.getHash());
-            commerceItemTrans.setTitle(productEntity.getProductTitle());
+            commerceItemTrans.setTitle(getAppropriateProductTitle(productEntity));
 
             commerceResult.getCommerceItems().getCommerceItemTrans().add(commerceItemTrans);
         }
+    }
+
+    private String getAppropriateProductTitle(ProductEntity productEntity) {
+        return productEntity.getRewardTitle() != null ? productEntity.getRewardTitle() : productEntity.getProductTitle();
     }
 
     private ItemRewardBase scriptToItem(String rewardScript) {

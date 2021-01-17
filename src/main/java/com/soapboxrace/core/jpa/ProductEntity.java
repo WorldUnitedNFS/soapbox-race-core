@@ -105,6 +105,8 @@ public class ProductEntity implements Serializable {
     @Fetch(FetchMode.SUBSELECT)
     private Set<ProductEntity> bundleItems;
 
+    private String rewardTitle;
+
     public Long getId() {
         return id;
     }
@@ -391,5 +393,13 @@ public class ProductEntity implements Serializable {
 
     public void setDropWeight(Double dropRate) {
         this.dropWeight = dropRate;
+    }
+
+    public String getRewardTitle() {
+        return rewardTitle;
+    }
+
+    public void setRewardTitle(String rewardTitle) {
+        this.rewardTitle = rewardTitle;
     }
 }
