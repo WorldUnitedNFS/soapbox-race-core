@@ -31,6 +31,12 @@ public class LobbyMessagingBO {
         openFireSoapBoxCli.send(XmppChat.createSystemMessage(msg), recipientPersona.getPersonaId());
     }
 
+    public void sendQueueJoinedNotification(PersonaEntity recipientPersona, int carClassHash) {
+        String msg = String.format("You are now in the queue. You will receive notifications of available lobbies for open-class events, or for events in your car class: %s",
+                GameFormatting.carClassHashToName(carClassHash));
+        openFireSoapBoxCli.send(XmppChat.createSystemMessage(msg), recipientPersona.getPersonaId());
+    }
+
     /**
      * Prepares and sends a new {@link com.soapboxrace.jaxb.http.LobbyEntrantAdded} message
      * to the given recipient {@link com.soapboxrace.core.jpa.PersonaEntity}.
