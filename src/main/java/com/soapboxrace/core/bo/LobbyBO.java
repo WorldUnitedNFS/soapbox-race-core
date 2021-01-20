@@ -142,7 +142,8 @@ public class LobbyBO {
             int maxEntrants = event.getMaxPlayers();
             List<LobbyEntrantEntity> lobbyEntrants = lobbyEntityTmp.getEntrants();
             int entrantsSize = lobbyEntrants.size();
-            if (entrantsSize < maxEntrants) {
+            if (entrantsSize < maxEntrants
+                    && lobbyEntityTmp.getLobbyCountdownInMilliseconds(lobbyEntityTmp.getEvent().getLobbyCountdownTime()) >= 10000) {
                 lobbyEntity = lobbyEntityTmp;
                 if (!isPersonaInside(personaEntity.getPersonaId(), lobbyEntrants)) {
                     LobbyEntrantEntity lobbyEntrantEntity = new LobbyEntrantEntity();
