@@ -58,13 +58,16 @@ public class LobbyBO {
     public void joinFastLobby(Long personaId, int carClassHash) {
         PersonaEntity personaEntity = personaDao.find(personaId);
         List<LobbyEntity> lobbys = lobbyDao.findAllOpen(carClassHash, personaEntity.getLevel());
+        boolean joinQueue = lobbys.isEmpty();
 
-        if (lobbys.isEmpty()) {
+        if (!lobbys.isEmpty()) {
+            Collections.shuffle(lobbys);
+            joinQueue = !joinLobby(personaEntity, lobbys, true);
+        }
+
+        if (joinQueue) {
             matchmakingBO.addPlayerToQueue(personaId, carClassHash);
             lobbyMessagingBO.sendQueueJoinedNotification(personaEntity, carClassHash);
-        } else {
-            Collections.shuffle(lobbys);
-            joinLobby(personaEntity, lobbys, true);
         }
     }
 
@@ -129,7 +132,7 @@ public class LobbyBO {
         joinLobby(personaEntity, lobbys, false);
     }
 
-    private void joinLobby(PersonaEntity personaEntity, List<LobbyEntity> lobbys, boolean checkIgnoredEvents) {
+    private boolean joinLobby(PersonaEntity personaEntity, List<LobbyEntity> lobbys, boolean checkIgnoredEvents) {
         LobbyEntity lobbyEntity = null;
         for (LobbyEntity lobbyEntityTmp : lobbys) {
             if (lobbyEntityTmp.getIsPrivate()) continue;
@@ -153,6 +156,8 @@ public class LobbyBO {
         if (lobbyEntity != null) {
             lobbyMessagingBO.sendLobbyInvitation(lobbyEntity, personaEntity.getPersonaId(), 10000);
         }
+
+        return lobbyEntity != null;
     }
 
     private boolean isPersonaInside(Long personaId, List<LobbyEntrantEntity> lobbyEntrants) {
