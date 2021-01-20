@@ -9,7 +9,6 @@ package com.soapboxrace.core.xmpp;
 import com.soapboxrace.core.bo.ParameterBO;
 import com.soapboxrace.core.dao.ChatRoomDAO;
 import com.soapboxrace.core.jpa.ChatRoomEntity;
-import org.igniterealtime.restclient.entity.MUCRoomEntities;
 import org.igniterealtime.restclient.entity.MUCRoomEntity;
 import org.igniterealtime.restclient.entity.UserEntity;
 
@@ -28,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Startup
 @Singleton
@@ -74,9 +74,7 @@ public class OpenFireRestApiCli {
             }
         }
 
-        Builder request = target.request(MediaType.APPLICATION_XML);
-        request.header("Authorization", openFireToken);
-        return request;
+        return target.request(MediaType.APPLICATION_XML).header("Authorization", openFireToken);
     }
 
     public void createUpdatePersona(String user, String password) {
@@ -122,45 +120,11 @@ public class OpenFireRestApiCli {
         if (!restApiEnabled) {
             return new ArrayList<>();
         }
-        Builder builder = getBuilder("chatrooms/forUser",
-                Map.of(
-                        "userName", "sbrw." + personaId,
-                        "domain", xmppIp,
-                        "resource", "EA-Chat"));
-        MUCRoomEntities roomEntities = builder.get(MUCRoomEntities.class);
-        List<MUCRoomEntity> listRoomEntity = roomEntities.getMucRooms();
-        for (MUCRoomEntity entity : listRoomEntity) {
-            String roomName = entity.getRoomName();
-            if (roomName.contains("group.channel.")) {
-                // FIXME: apparently we need to make the request TWICE, first one will always fail for some reason
-                getAllOccupantsInRoom(roomName);
-                return getAllOccupantsInRoom(roomName);
-            }
-        }
-        return new ArrayList<>();
-    }
-
-    public List<Long> getAllOccupantsInRoom(String roomName) {
-        Builder builder = getBuilder("chatrooms/" + roomName + "/occupants");
-        OccupantEntities occupantEntities = builder.get(OccupantEntities.class);
-        List<Long> listOfPersona = new ArrayList<>();
-        for (OccupantEntity entity : occupantEntities.getOccupants()) {
-            String jid = entity.getJid();
-            try {
-                Long personaId = Long.parseLong(jid.substring(jid.lastIndexOf('.') + 1));
-                listOfPersona.add(personaId);
-            } catch (Exception e) {
-                //
-            }
-        }
-        return listOfPersona;
-    }
-
-    public List<MUCRoomEntity> getAllRooms() {
-        Builder builder = getBuilder("chatrooms");
-        MUCRoomEntities roomEntities = builder.get(MUCRoomEntities.class);
-
-        return roomEntities.getMucRooms();
+        Builder builder = getBuilder("chatrooms/getPersonaGroupMembers", Map.of("userName", "sbrw." + personaId));
+        return builder.get(GameGroupChatMembers.class).getMembers()
+                .stream()
+                .map(s -> Long.parseLong(s.split("\\.")[1]))
+                .collect(Collectors.toList());
     }
 
     public void sendChatAnnouncement(String message) {
