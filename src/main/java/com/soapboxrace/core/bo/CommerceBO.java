@@ -17,6 +17,7 @@ import com.soapboxrace.jaxb.http.*;
 
 import javax.ejb.EJB;
 import javax.ejb.Stateless;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -91,6 +92,7 @@ public class CommerceBO {
 
         Multimap<Integer, Object> addedItems = ArrayListMultimap.create();
         Multimap<Integer, Object> removedItems = ArrayListMultimap.create();
+        List<InventoryItemEntity> inventoryItemsToDecrease = new ArrayList<>();
 
         Collection<CustomPaintTrans> paintsAdded = paintDifferences.getAdded();
         paintsAdded.forEach(p -> addedItems.put(p.getGroup(), p));
@@ -137,7 +139,7 @@ public class CommerceBO {
                     boolean itemInBasket = basketItems.stream().anyMatch(p -> p.getProductId().equalsIgnoreCase(productEntity.getProductId()));
 
                     if (inventoryItemEntity != null && !itemInBasket) {
-                        inventoryBO.decreaseItemCount(inventoryEntity, inventoryItemEntity);
+                        inventoryItemsToDecrease.add(inventoryItemEntity);
                     } else {
                         if (productEntity.getCurrency().equals("CASH"))
                             removeCash += (int) productEntity.getPrice();
@@ -164,17 +166,6 @@ public class CommerceBO {
             }
         }
 
-        if (commerceSessionTrans.getEntitlementsToSell().getItems() != null) {
-            commerceSessionTrans.getEntitlementsToSell().getItems().getEntitlementItemTrans().forEach(e -> {
-                InventoryItemEntity inventoryItemEntity = inventoryItemDAO.findByPersonaIdAndEntitlementTag(personaId
-                        , e.getEntitlementId());
-
-                if (inventoryItemEntity != null) {
-                    inventoryBO.removeItem(personaEntity, e.getEntitlementId(), e.getQuantity());
-                }
-            });
-        }
-
         double finalCash = personaEntity.getCash() - removeCash + addCash.get();
         double finalBoost = personaEntity.getBoost() - removeBoost + addBoost;
 
@@ -184,11 +175,31 @@ public class CommerceBO {
             return commerceSessionResultTrans;
         }
 
-        OwnedCarConverter.paints2NewEntity(commerceCustomCar, carEntity);
-        OwnedCarConverter.vinyls2NewEntity(commerceCustomCar, carEntity);
-        OwnedCarConverter.skillModParts2NewEntity(commerceCustomCar, carEntity);
-        OwnedCarConverter.performanceParts2NewEntity(commerceCustomCar, carEntity);
-        OwnedCarConverter.visuallParts2NewEntity(commerceCustomCar, carEntity);
+        if (commerceSessionTrans.getEntitlementsToSell().getItems() != null) {
+            for (EntitlementItemTrans e : commerceSessionTrans.getEntitlementsToSell().getItems().getEntitlementItemTrans()) {
+                inventoryBO.removeItem(personaEntity, e.getEntitlementId(), e.getQuantity());
+            }
+        }
+
+        for (InventoryItemEntity inventoryItemEntity : inventoryItemsToDecrease) {
+            inventoryBO.decreaseItemCount(inventoryEntity, inventoryItemEntity);
+        }
+
+        if (paintDifferences.hasDifferences()) {
+            OwnedCarConverter.paints2NewEntity(commerceCustomCar, carEntity);
+        }
+        if (vinylDifferences.hasDifferences()) {
+            OwnedCarConverter.vinyls2NewEntity(commerceCustomCar, carEntity);
+        }
+        if (skillModPartDifferences.hasDifferences()) {
+            OwnedCarConverter.skillModParts2NewEntity(commerceCustomCar, carEntity);
+        }
+        if (performancePartDifferences.hasDifferences()) {
+            OwnedCarConverter.performanceParts2NewEntity(commerceCustomCar, carEntity);
+        }
+        if (visualPartDifferences.hasDifferences()) {
+            OwnedCarConverter.visuallParts2NewEntity(commerceCustomCar, carEntity);
+        }
 
         performanceBO.calcNewCarClass(carEntity);
 
