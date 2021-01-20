@@ -175,16 +175,6 @@ public class CommerceBO {
             return commerceSessionResultTrans;
         }
 
-        if (commerceSessionTrans.getEntitlementsToSell().getItems() != null) {
-            for (EntitlementItemTrans e : commerceSessionTrans.getEntitlementsToSell().getItems().getEntitlementItemTrans()) {
-                inventoryBO.removeItem(personaEntity, e.getEntitlementId(), e.getQuantity());
-            }
-        }
-
-        for (InventoryItemEntity inventoryItemEntity : inventoryItemsToDecrease) {
-            inventoryBO.decreaseItemCount(inventoryEntity, inventoryItemEntity);
-        }
-
         if (paintDifferences.hasDifferences()) {
             OwnedCarConverter.paints2NewEntity(commerceCustomCar, carEntity);
         }
@@ -206,6 +196,16 @@ public class CommerceBO {
         carDAO.update(carEntity);
         personaEntity.setBoost(finalBoost);
         driverPersonaBO.updateCash(personaEntity, finalCash);
+
+        if (commerceSessionTrans.getEntitlementsToSell().getItems() != null) {
+            for (EntitlementItemTrans e : commerceSessionTrans.getEntitlementsToSell().getItems().getEntitlementItemTrans()) {
+                inventoryBO.removeItem(personaEntity, e.getEntitlementId(), e.getQuantity());
+            }
+        }
+
+        for (InventoryItemEntity inventoryItemEntity : inventoryItemsToDecrease) {
+            inventoryBO.decreaseItemCount(inventoryEntity, inventoryItemEntity);
+        }
 
         commerceSessionResultTrans.setUpdatedCar(personaBO.getDefaultCar(personaId));
         commerceSessionResultTrans.setInvalidBasket(new InvalidBasketTrans());
