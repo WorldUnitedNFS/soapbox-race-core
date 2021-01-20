@@ -83,13 +83,8 @@ public class LobbyBO {
 
         List<LobbyEntity> lobbys = lobbyDao.findByEventStarted(eventEntity);
         if (lobbys.size() == 0) {
-            createLobby(personaEntity.getPersonaId(), eventId, false);
-//            if (eventEntity.getCarClassHash() != 607077938) {
-//                // For non-open lobbies, send a message to online players
-//                openFireRestApiCli.sendChatAnnouncement(
-//                        String.format("%s is looking for racers on %s (%s class)", personaEntity.getName(),
-//                                eventEntity.getName(), GameFormatting.carClassHashToName(eventEntity.getCarClassHash())));
-//            }
+            LobbyEntity newLobby = createLobby(personaEntity.getPersonaId(), eventId, false);
+            matchmakingBO.sendLobbyChatNotifications(newLobby, personaEntity);
         } else {
             joinLobby(personaEntity, lobbys);
         }
@@ -124,11 +119,6 @@ public class LobbyBO {
         lobbyDao.insert(lobbyEntity);
         lobbyMessagingBO.sendLobbyInvitation(lobbyEntity, personaId, 10000);
         matchmakingBO.removePlayerFromQueue(personaId);
-
-        if (!isPrivate) {
-            matchmakingBO.sendPotentialLobbyInvites(lobbyEntity);
-        }
-
         lobbyCountdownBO.scheduleLobbyStart(lobbyEntity);
 
         return lobbyEntity;
@@ -196,6 +186,8 @@ public class LobbyBO {
             throw new EngineException(EngineExceptionCode.PersonaNotFound, false);
         }
 
+        matchmakingBO.removePlayerFromQueue(personaId);
+
         int eventId = lobbyEntity.getEvent().getId();
 
         LobbyCountdown lobbyCountdown = new LobbyCountdown();
@@ -206,7 +198,6 @@ public class LobbyBO {
 
         ArrayOfLobbyEntrantInfo arrayOfLobbyEntrantInfo = new ArrayOfLobbyEntrantInfo();
         List<LobbyEntrantInfo> lobbyEntrantInfo = arrayOfLobbyEntrantInfo.getLobbyEntrantInfo();
-
         List<LobbyEntrantEntity> entrants = lobbyEntity.getEntrants();
 
         if (entrants.size() >= lobbyEntity.getEvent().getMaxPlayers()) {
@@ -217,7 +208,6 @@ public class LobbyBO {
             throw new EngineException(EngineExceptionCode.GameLocked, false);
         }
 
-        matchmakingBO.removePlayerFromQueue(personaId);
         for (LobbyEntrantEntity lobbyEntrantEntity : entrants) {
             if (!Objects.equals(personaEntity.getPersonaId(), lobbyEntrantEntity.getPersona().getPersonaId())) {
                 lobbyMessagingBO.sendJoinMessage(lobbyEntity, personaEntity, lobbyEntrantEntity.getPersona());

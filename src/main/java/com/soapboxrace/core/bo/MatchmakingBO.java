@@ -18,7 +18,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Responsible for managing the multiplayer matchmaking system.
@@ -64,11 +63,11 @@ public class MatchmakingBO {
     }
 
     /**
-     * Send invitations to players who qualify for a lobby
+     * Send chat notifications to players who qualify for a lobby
      *
      * @param lobbyEntity The new lobby
      */
-    public void sendPotentialLobbyInvites(LobbyEntity lobbyEntity) {
+    public void sendLobbyChatNotifications(LobbyEntity lobbyEntity, PersonaEntity creatorPersona) {
         EventEntity event = lobbyEntity.getEvent();
 
         for (Map.Entry<Long, Integer> queueEntry : this.queuedPlayers.entrySet()) {
@@ -99,10 +98,7 @@ public class MatchmakingBO {
                 continue;
             }
 
-            // Finally, add a bit of randomness to the mix, so we don't end up sending the same invite to everyone.
-            if (ThreadLocalRandom.current().nextBoolean()) {
-                lobbyMessagingBO.sendLobbyInvitation(lobbyEntity, queuePersonaId, event.getLobbyCountdownTime());
-            }
+            lobbyMessagingBO.sendLobbyChatNotification(lobbyEntity, creatorPersona, queuePersona);
         }
     }
 

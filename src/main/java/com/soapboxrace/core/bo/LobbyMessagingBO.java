@@ -1,5 +1,6 @@
 package com.soapboxrace.core.bo;
 
+import com.soapboxrace.core.bo.util.GameFormatting;
 import com.soapboxrace.core.jpa.LobbyEntity;
 import com.soapboxrace.core.jpa.PersonaEntity;
 import com.soapboxrace.core.xmpp.OpenFireSoapBoxCli;
@@ -21,6 +22,13 @@ import java.util.List;
 public class LobbyMessagingBO {
     @EJB
     private OpenFireSoapBoxCli openFireSoapBoxCli;
+
+    public void sendLobbyChatNotification(LobbyEntity lobbyEntity, PersonaEntity sourcePersona, PersonaEntity recipientPersona) {
+        String msg = String.format("%s is looking for racers on %s (%s class)", sourcePersona.getName(),
+                lobbyEntity.getEvent().getName(),
+                GameFormatting.carClassHashToName(lobbyEntity.getEvent().getCarClassHash()));
+        openFireSoapBoxCli.send(msg, recipientPersona.getPersonaId());
+    }
 
     /**
      * Prepares and sends a new {@link com.soapboxrace.jaxb.http.LobbyEntrantAdded} message
