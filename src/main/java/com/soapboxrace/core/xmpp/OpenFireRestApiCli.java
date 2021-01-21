@@ -121,7 +121,13 @@ public class OpenFireRestApiCli {
             return new ArrayList<>();
         }
         Builder builder = getBuilder("chatrooms/getPersonaGroupMembers", Map.of("userName", "sbrw." + personaId));
-        return builder.get(GameGroupChatMembers.class).getMembers()
+        GameGroupChatMembers gameGroupChatMembers = builder.get(GameGroupChatMembers.class);
+
+        if (gameGroupChatMembers.getMembers() == null) {
+            return new ArrayList<>();
+        }
+
+        return gameGroupChatMembers.getMembers()
                 .stream()
                 .map(s -> Long.parseLong(s.split("\\.")[1]))
                 .collect(Collectors.toList());
