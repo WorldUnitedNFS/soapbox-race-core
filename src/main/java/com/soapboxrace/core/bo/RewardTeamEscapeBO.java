@@ -12,7 +12,6 @@ import com.soapboxrace.core.jpa.*;
 import com.soapboxrace.jaxb.http.Accolades;
 import com.soapboxrace.jaxb.http.EnumRewardType;
 import com.soapboxrace.jaxb.http.TeamEscapeArbitrationPacket;
-import org.apache.commons.lang3.RandomUtils;
 
 import javax.ejb.EJB;
 import javax.ejb.Stateless;
@@ -70,7 +69,6 @@ public class RewardTeamEscapeBO extends RewardEventBO<TeamEscapeArbitrationPacke
         setMultiplierReward(eventRewardEntity, rewardVO);
         setAmplifierReward(personaEntity, rewardVO);
 
-        teamEscapeArbitrationPacket.setRank(RandomUtils.nextInt(1, 5));
         applyRaceReward(rewardVO.getRep(), rewardVO.getCash(), personaEntity, true, achievementTransaction);
         return getAccolades(personaEntity, eventRewardEntity, teamEscapeArbitrationPacket, rewardVO);
     }
