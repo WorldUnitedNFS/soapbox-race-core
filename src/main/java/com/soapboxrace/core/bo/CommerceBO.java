@@ -197,14 +197,19 @@ public class CommerceBO {
         personaEntity.setBoost(finalBoost);
         driverPersonaBO.updateCash(personaEntity, finalCash);
 
-        if (commerceSessionTrans.getEntitlementsToSell().getItems() != null) {
-            for (EntitlementItemTrans e : commerceSessionTrans.getEntitlementsToSell().getItems().getEntitlementItemTrans()) {
-                inventoryBO.removeItem(personaEntity, e.getEntitlementId(), e.getQuantity());
-            }
-        }
-
         for (InventoryItemEntity inventoryItemEntity : inventoryItemsToDecrease) {
             inventoryBO.decreaseItemCount(inventoryEntity, inventoryItemEntity);
+        }
+
+        if (commerceSessionTrans.getEntitlementsToSell().getItems() != null) {
+            for (EntitlementItemTrans e : commerceSessionTrans.getEntitlementsToSell().getItems().getEntitlementItemTrans()) {
+                InventoryItemEntity inventoryItemEntity = inventoryItemDAO.findByPersonaIdAndEntitlementTag(personaId
+                        , e.getEntitlementId());
+
+                if (inventoryItemEntity != null) {
+                    inventoryBO.removeItem(personaEntity, e.getEntitlementId(), e.getQuantity());
+                }
+            }
         }
 
         commerceSessionResultTrans.setUpdatedCar(personaBO.getDefaultCar(personaId));
