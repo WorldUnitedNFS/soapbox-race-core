@@ -108,11 +108,16 @@ public class PersonaBO {
                 personaDAO.update(personaEntity);
             }
 
-            CarEntity carEntity = carDAO.findByPersonaIdEager(personaId, curCarIndex);
+            CarEntity carEntity = carDAO.findByPersonaId(personaId, curCarIndex);
+            //noinspection ResultOfMethodCallIgnored
             carEntity.getPaints().size();
+            //noinspection ResultOfMethodCallIgnored
             carEntity.getPerformanceParts().size();
+            //noinspection ResultOfMethodCallIgnored
             carEntity.getSkillModParts().size();
+            //noinspection ResultOfMethodCallIgnored
             carEntity.getVinyls().size();
+            //noinspection ResultOfMethodCallIgnored
             carEntity.getVisualParts().size();
 
             return carEntity;

@@ -8,7 +8,6 @@ package com.soapboxrace.core.dao;
 
 import com.soapboxrace.core.dao.util.LongKeyedDAO;
 import com.soapboxrace.core.jpa.CarEntity;
-import com.soapboxrace.core.jpa.PersonaEntity;
 
 import javax.ejb.Stateless;
 import javax.persistence.Query;
@@ -29,8 +28,8 @@ public class CarDAO extends LongKeyedDAO<CarEntity> {
         return query.getResultList();
     }
 
-    public CarEntity findByPersonaIdEager(Long personaId, int index) {
-        TypedQuery<CarEntity> query = entityManager.createNamedQuery("CarEntity.findByPersonaIdEager",
+    public CarEntity findByPersonaId(Long personaId, int index) {
+        TypedQuery<CarEntity> query = entityManager.createNamedQuery("CarEntity.findByPersonaId",
                 CarEntity.class);
         query.setParameter("persona", personaId);
         query.setFirstResult(index);
@@ -38,22 +37,15 @@ public class CarDAO extends LongKeyedDAO<CarEntity> {
         return query.getSingleResult();
     }
 
-    public List<CarEntity> findByPersonaIdEager(Long personaId) {
-        TypedQuery<CarEntity> query = entityManager.createNamedQuery("CarEntity.findByPersonaIdEager",
-                CarEntity.class);
-        query.setParameter("persona", personaId);
-        return query.getResultList();
-    }
-
-    public Long findNumNonRentalsByPersonaId(Long personaId) {
-        TypedQuery<Long> query = entityManager.createNamedQuery("CarEntity.findNumNonRentalsByPersonaId",
+    public Long countNumRentalsByPersonaId(Long personaId) {
+        TypedQuery<Long> query = entityManager.createNamedQuery("CarEntity.countNumNonRentalsByPersonaId",
                 Long.class);
         query.setParameter("persona", personaId);
         return query.getSingleResult();
     }
 
-    public int findNumByPersonaId(Long personaId) {
-        TypedQuery<Long> query = entityManager.createNamedQuery("CarEntity.findNumByPersonaId",
+    public int countByPersonaId(Long personaId) {
+        TypedQuery<Long> query = entityManager.createNamedQuery("CarEntity.countByPersonaId",
                 Long.class);
         query.setParameter("persona", personaId);
         return query.getSingleResult().intValue();
@@ -62,12 +54,6 @@ public class CarDAO extends LongKeyedDAO<CarEntity> {
     public int deleteAllExpired() {
         Query query = entityManager.createNamedQuery("CarEntity.deleteAllExpired");
         return query.executeUpdate();
-    }
-
-    public void deleteByPersona(PersonaEntity personaEntity) {
-        Query query = entityManager.createNamedQuery("CarEntity.deleteByPersona");
-        query.setParameter("persona", personaEntity);
-        query.executeUpdate();
     }
 
 }

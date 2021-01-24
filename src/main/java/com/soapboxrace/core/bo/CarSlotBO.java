@@ -56,10 +56,15 @@ public class CarSlotBO {
         List<CarEntity> ownedCarEntities = carDAO.findByPersonaId(personaId);
 
         for (CarEntity carEntity : ownedCarEntities) {
+            //noinspection ResultOfMethodCallIgnored
             carEntity.getPaints().size();
+            //noinspection ResultOfMethodCallIgnored
             carEntity.getPerformanceParts().size();
+            //noinspection ResultOfMethodCallIgnored
             carEntity.getSkillModParts().size();
+            //noinspection ResultOfMethodCallIgnored
             carEntity.getVinyls().size();
+            //noinspection ResultOfMethodCallIgnored
             carEntity.getVisualParts().size();
 
             if (carEntity.getCarClassHash() == 0) {
@@ -73,6 +78,6 @@ public class CarSlotBO {
     }
 
     public int countPersonasCar(Long personaId) {
-        return carDAO.findNumByPersonaId(personaId);
+        return carDAO.countByPersonaId(personaId);
     }
 }

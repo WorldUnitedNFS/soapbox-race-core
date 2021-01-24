@@ -155,7 +155,7 @@ public class BasketBO {
         if (canPurchaseProduct(personaEntity, productEntity)) {
             try {
                 CarEntity carEntity = addCar(productEntity, personaEntity);
-                personaEntity.setCurCarIndex(carDAO.findNumByPersonaId(personaEntity.getPersonaId()) - 1);
+                personaEntity.setCurCarIndex(carDAO.countByPersonaId(personaEntity.getPersonaId()) - 1);
                 personaDao.update(personaEntity);
 
                 ArrayOfOwnedCarTrans arrayOfOwnedCarTrans = new ArrayOfOwnedCarTrans();
@@ -257,7 +257,7 @@ public class BasketBO {
 
         boolean isRental = productEntity.getDurationMinute() > 0;
         if (isRental) {
-            Long numNonRentals = carDAO.findNumNonRentalsByPersonaId(personaEntity.getPersonaId());
+            Long numNonRentals = carDAO.countNumRentalsByPersonaId(personaEntity.getPersonaId());
 
             if (numNonRentals.equals(0L)) {
                 throw new EngineException("Persona " + personaEntity.getName() + " has no non-rental cars", EngineExceptionCode.MissingRequiredEntitlements, true);
@@ -333,7 +333,7 @@ public class BasketBO {
         if (!carEntity.getPersona().getPersonaId().equals(personaEntity.getPersonaId())) {
             throw new EngineException(EngineExceptionCode.CarNotOwnedByDriver, false);
         }
-        Long nonRentalCarCount = carDAO.findNumNonRentalsByPersonaId(personaEntity.getPersonaId());
+        Long nonRentalCarCount = carDAO.countNumRentalsByPersonaId(personaEntity.getPersonaId());
 
         // If the car is not a rental, check the number of non-rentals
         if (!"RentalCar".equalsIgnoreCase(carEntity.getOwnershipType())) {
@@ -353,7 +353,7 @@ public class BasketBO {
             personaEntity.setCurCarIndex(curCarIndex - 1);
         } else {
             // Worst case: count cars again and subtract 1 to get new index
-            personaEntity.setCurCarIndex(carDAO.findNumByPersonaId(personaEntity.getPersonaId()) - 1);
+            personaEntity.setCurCarIndex(carDAO.countByPersonaId(personaEntity.getPersonaId()) - 1);
         }
 
         personaDao.update(personaEntity);

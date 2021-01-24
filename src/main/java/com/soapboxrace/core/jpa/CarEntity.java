@@ -20,15 +20,11 @@ import java.util.Set;
 @NamedQueries({
         @NamedQuery(name = "CarEntity.findByPersonaId", //
                 query = "SELECT obj FROM CarEntity obj WHERE obj.persona.personaId = :persona ORDER BY obj.id"),
-        @NamedQuery(name = "CarEntity.findByPersonaIdEager", //
-                query = "SELECT obj FROM CarEntity obj WHERE obj.persona.personaId = :persona ORDER BY obj.id"), //
-        @NamedQuery(name = "CarEntity.findNumNonRentalsByPersonaId", //
+        @NamedQuery(name = "CarEntity.countNumNonRentalsByPersonaId", //
                 query = "SELECT COUNT(obj) FROM CarEntity obj  WHERE obj.persona.personaId = :persona" +
                         " AND obj.expirationDate IS NULL"), //
-        @NamedQuery(name = "CarEntity.findNumByPersonaId",
+        @NamedQuery(name = "CarEntity.countByPersonaId",
                 query = "SELECT COUNT(obj) FROM CarEntity obj WHERE obj.persona.personaId = :persona"),
-        @NamedQuery(name = "CarEntity.deleteByPersona", //
-                query = "DELETE FROM CarEntity obj WHERE obj.persona = :persona"), //
         @NamedQuery(name = "CarEntity.deleteAllExpired", //
                 query = "DELETE FROM CarEntity obj  WHERE obj.expirationDate <= CURRENT_TIMESTAMP")
 })
