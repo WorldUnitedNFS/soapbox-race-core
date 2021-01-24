@@ -61,12 +61,6 @@ public class DriverPersonaBO {
     @EJB
     private PersonaAchievementRankDAO personaAchievementRankDAO;
 
-    @EJB
-    private PersonaAchievementDAO personaAchievementDAO;
-
-    @EJB
-    private SocialRelationshipDAO socialRelationshipDAO;
-
     public ProfileData createPersona(Long userId, PersonaEntity personaEntity) {
         UserEntity userEntity = userDao.find(userId);
 
@@ -85,6 +79,7 @@ public class DriverPersonaBO {
         personaEntity.setCreated(LocalDateTime.now());
         personaEntity.setFirstLogin(personaEntity.getCreated());
         personaEntity.setLastLogin(personaEntity.getCreated());
+        personaEntity.setNumCarSlots(parameterBO.getIntParam("STARTING_CAR_SLOTS", 250));
         personaDao.insert(personaEntity);
 
         inventoryBO.createInventory(personaEntity);

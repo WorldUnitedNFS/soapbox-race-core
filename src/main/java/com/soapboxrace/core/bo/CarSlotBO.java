@@ -7,11 +7,15 @@
 package com.soapboxrace.core.bo;
 
 import com.soapboxrace.core.dao.CarDAO;
+import com.soapboxrace.core.dao.ProductDAO;
 import com.soapboxrace.core.jpa.CarEntity;
+import com.soapboxrace.jaxb.http.ArrayOfProductTrans;
+import com.soapboxrace.jaxb.http.ProductTrans;
 import org.slf4j.Logger;
 
 import javax.ejb.*;
 import javax.inject.Inject;
+import java.util.Collections;
 import java.util.List;
 
 @Singleton
@@ -22,7 +26,13 @@ public class CarSlotBO {
     private CarDAO carDAO;
 
     @EJB
+    private ProductDAO productDAO;
+
+    @EJB
     private PerformanceBO performanceBO;
+
+    @EJB
+    private ProductBO productBO;
 
     @Inject
     private Logger logger;
@@ -33,6 +43,13 @@ public class CarSlotBO {
         if (numRemoved > 0) {
             logger.info("Removed {} expired cars", numRemoved);
         }
+    }
+
+    public ArrayOfProductTrans getCarSlotProducts() {
+        List<ProductTrans> productTransList = productBO.getProductTransList(Collections.singletonList(productDAO.findByProductId("SRV-CARSLOT")));
+        ArrayOfProductTrans arrayOfProductTrans = new ArrayOfProductTrans();
+        arrayOfProductTrans.getProductTrans().addAll(productTransList);
+        return arrayOfProductTrans;
     }
 
     public List<CarEntity> getPersonasCar(Long personaId) {

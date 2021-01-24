@@ -89,7 +89,9 @@ public class Personas {
 
         BasketTrans basketTrans = JAXBUtility.unMarshal(basketXml, BasketTrans.class);
         String productId = basketTrans.getItems().getBasketItemTrans().get(0).getProductId();
-        if ("-1".equals(productId) || "SRV-GARAGESLOT".equals(productId)) {
+        if ("SRV-CARSLOT".equals(productId)) {
+            commerceResultTrans.setStatus(basketBO.buyCarSlot(productId, personaEntity, basketTrans, commerceResultTrans));
+        } else if ("-1".equals(productId)) {
             commerceResultTrans.setStatus(CommerceResultStatus.FAIL_INSUFFICIENT_FUNDS);
         } else if (productId.contains("SRV-POWERUP")) {
             commerceResultTrans.setStatus(basketBO.buyPowerups(productId, personaEntity));
@@ -103,7 +105,7 @@ public class Personas {
             if (productEntity != null) {
                 switch (productEntity.getProductType()) {
                     case "PRESETCAR":
-                        commerceResultTrans.setStatus(basketBO.buyCar(productEntity, personaEntity, tokenSessionEntity, commerceResultTrans));
+                        commerceResultTrans.setStatus(basketBO.buyCar(productEntity, personaEntity, commerceResultTrans));
                         break;
                     case "BUNDLE":
                         commerceResultTrans.setStatus(basketBO.buyBundle(productId, personaEntity, commerceResultTrans));
@@ -150,29 +152,9 @@ public class Personas {
         carSlotInfoTrans.setCarsOwnedByPersona(arrayOfOwnedCarTrans);
         carSlotInfoTrans.setDefaultOwnedCarIndex(personaEntity.getCurCarIndex());
         carSlotInfoTrans.setObtainableSlots(new ArrayOfProductTrans());
-        int carlimit = parameterBO.getCarLimit(requestSessionInfo.getUser());
-        carSlotInfoTrans.setOwnedCarSlotsCount(carlimit);
-        ArrayOfProductTrans arrayOfProductTrans = new ArrayOfProductTrans();
-        ProductTrans productTrans = new ProductTrans();
-        productTrans.setBundleItems(new ArrayOfProductTrans());
-        productTrans.setCategoryId("");
-        productTrans.setCurrency("_NS");
-        productTrans.setDescription("New car slot !!");
-        productTrans.setDurationMinute(0);
-        productTrans.setHash(-1143680669);
-        productTrans.setIcon("128_cash");
-        productTrans.setLevel(70);
-        productTrans.setLongDescription("New car slot !");
-        productTrans.setPrice(100.0000);
-        productTrans.setPriority(0);
-        productTrans.setProductId("SRV-GARAGESLOT");
-        productTrans.setSecondaryIcon("");
-        productTrans.setUseCount(1);
-        productTrans.setVisualStyle("");
-        productTrans.setWebIcon("");
-        productTrans.setWebLocation("");
-        arrayOfProductTrans.getProductTrans().add(productTrans);
-        carSlotInfoTrans.setObtainableSlots(arrayOfProductTrans);
+        carSlotInfoTrans.setOwnedCarSlotsCount(personaEntity.getNumCarSlots());
+        carSlotInfoTrans.setObtainableSlots(carSlotBO.getCarSlotProducts());
+
         return carSlotInfoTrans;
     }
 

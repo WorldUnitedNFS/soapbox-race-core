@@ -50,6 +50,9 @@ public class PersonaEntity {
     @Column(name = "last_login")
     private LocalDateTime lastLogin;
 
+    @Column
+    private int numCarSlots = 0;
+
     public double getBoost() {
         return boost;
     }
@@ -190,5 +193,13 @@ public class PersonaEntity {
 
     public void setLastLogin(LocalDateTime lastLogin) {
         this.lastLogin = lastLogin;
+    }
+
+    public int getNumCarSlots() {
+        return numCarSlots;
+    }
+
+    public void setNumCarSlots(int numCarSlots) {
+        this.numCarSlots = numCarSlots;
     }
 }

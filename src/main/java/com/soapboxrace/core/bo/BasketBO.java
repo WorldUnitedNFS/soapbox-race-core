@@ -12,10 +12,7 @@ import com.soapboxrace.core.dao.*;
 import com.soapboxrace.core.engine.EngineException;
 import com.soapboxrace.core.engine.EngineExceptionCode;
 import com.soapboxrace.core.jpa.*;
-import com.soapboxrace.jaxb.http.ArrayOfOwnedCarTrans;
-import com.soapboxrace.jaxb.http.CommerceResultStatus;
-import com.soapboxrace.jaxb.http.CommerceResultTrans;
-import com.soapboxrace.jaxb.http.OwnedCarTrans;
+import com.soapboxrace.jaxb.http.*;
 import com.soapboxrace.jaxb.util.JAXBUtility;
 
 import javax.ejb.EJB;
@@ -132,9 +129,26 @@ public class BasketBO {
         return CommerceResultStatus.FAIL_INSUFFICIENT_FUNDS;
     }
 
-    public CommerceResultStatus buyCar(ProductEntity productEntity, PersonaEntity personaEntity, TokenSessionEntity tokenSessionEntity,
+    public CommerceResultStatus buyCarSlot(String productId, PersonaEntity personaEntity, BasketTrans basketTrans, CommerceResultTrans commerceResultTrans) {
+        ProductEntity productEntity = productDao.findByProductId(productId);
+
+        if (productEntity == null) {
+            return CommerceResultStatus.FAIL_INVALID_BASKET;
+        }
+
+        if (canPurchaseProduct(personaEntity, productEntity)) {
+            personaEntity.setNumCarSlots(personaEntity.getNumCarSlots() + 1);
+            personaDao.update(personaEntity);
+            performPersonaTransaction(personaEntity, productEntity);
+            return CommerceResultStatus.SUCCESS;
+        }
+
+        return CommerceResultStatus.FAIL_INSUFFICIENT_FUNDS;
+    }
+
+    public CommerceResultStatus buyCar(ProductEntity productEntity, PersonaEntity personaEntity,
                                        CommerceResultTrans commerceResultTrans) {
-        if (getPersonaCarCount(personaEntity.getPersonaId()) >= parameterBO.getCarLimit(tokenSessionEntity.getUserEntity())) {
+        if (getPersonaCarCount(personaEntity.getPersonaId()) >= personaEntity.getNumCarSlots()) {
             return CommerceResultStatus.FAIL_INSUFFICIENT_CAR_SLOTS;
         }
 

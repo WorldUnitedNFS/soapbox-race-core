@@ -60,13 +60,6 @@ public class ParameterBO {
         return parameterMap.get(name);
     }
 
-    public int getCarLimit(UserEntity userEntity) {
-        if (userEntity.isPremium()) {
-            return getIntParam("MAX_CAR_SLOTS_PREMIUM", 200);
-        }
-        return getIntParam("MAX_CAR_SLOTS_FREE", 200);
-    }
-
     public int getMaxCash(UserEntity userEntity) {
         if (userEntity.isPremium()) {
             return getIntParam("MAX_PLAYER_CASH_PREMIUM", 9_999_999);
