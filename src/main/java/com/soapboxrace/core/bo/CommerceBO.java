@@ -21,7 +21,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Stateless
@@ -56,8 +55,14 @@ public class CommerceBO {
     @EJB
     private AchievementBO achievementBO;
 
+    @EJB
+    private PersonaGiftDAO personaGiftDAO;
+
     public CommerceSessionResultTrans doCommerce(CommerceSessionTrans commerceSessionTrans, Long personaId) {
         List<BasketItemTrans> basketItems = commerceSessionTrans.getBasket().getItems().getBasketItemTrans();
+        Map<Integer, ProductEntity> basketProducts = basketItems.stream().map(b -> productDAO.findByProductId(b.getProductId()))
+                .collect(Collectors.toMap(ProductEntity::getHash, p -> p));
+
         PersonaEntity personaEntity = personaDAO.find(personaId);
         CarEntity carEntity = personaBO.getDefaultCarEntity(personaId);
         OwnedCarTrans ownedCarTrans = personaBO.getDefaultCar(personaId);
@@ -93,6 +98,7 @@ public class CommerceBO {
         Multimap<Integer, Object> addedItems = ArrayListMultimap.create();
         Multimap<Integer, Object> removedItems = ArrayListMultimap.create();
         List<InventoryItemEntity> inventoryItemsToDecrease = new ArrayList<>();
+        List<PersonaGiftEntity> personaGiftsToDecrease = new ArrayList<>();
 
         Collection<CustomPaintTrans> paintsAdded = paintDifferences.getAdded();
         paintsAdded.forEach(p -> addedItems.put(p.getGroup(), p));
@@ -111,7 +117,7 @@ public class CommerceBO {
         vinylDifferences.getRemoved().forEach(p -> removedItems.put(p.getHash(), p));
 
         CommerceSessionResultTrans commerceSessionResultTrans = new CommerceSessionResultTrans();
-        AtomicInteger addCash = new AtomicInteger();
+        int addCash = 0;
         int removeCash = 0;
         int addBoost = 0;
         int removeBoost = 0;
@@ -132,23 +138,46 @@ public class CommerceBO {
                     return commerceSessionResultTrans;
                 }
             } else {
-                ProductEntity productEntity = productDAO.findByHash(addedItem.getKey());
+                if (basketProducts.containsKey(addedItem.getKey())) {
+                    // If the product is in the basket, we can skip the lookup-by-hash.
+                    // This is the "happy path" when dealing with gifts.
+                    ProductEntity productInBasket = basketProducts.get(addedItem.getKey());
 
-                if (productEntity != null) {
-                    InventoryItemEntity inventoryItemEntity = inventoryItemDAO.findByInventoryIdAndEntitlementTag(inventoryEntity.getId(), productEntity.getEntitlementTag());
-                    boolean itemInBasket = basketItems.stream().anyMatch(p -> p.getProductId().equalsIgnoreCase(productEntity.getProductId()));
+                    if (productInBasket.isGift()) {
+                        PersonaGiftEntity personaGiftEntity = personaGiftDAO.findByPersonaIdAndProductId(personaId, productInBasket.getProductId());
 
-                    if (inventoryItemEntity != null && !itemInBasket) {
-                        inventoryItemsToDecrease.add(inventoryItemEntity);
+                        // If the player doesn't have a gift record for the product, don't let them buy it.
+                        if (personaGiftEntity == null) {
+                            commerceSessionResultTrans.setStatus(CommerceResultStatus.FAIL_LOCKED_PRODUCT_NOT_ACCESSIBLE_TO_THIS_USER);
+                            return commerceSessionResultTrans;
+                        }
+
+                        // If the player has used up their gift, don't let them get any more.
+                        if (personaGiftEntity.getUseCount() >= personaGiftEntity.getGiftCodeEntity().getUseCount()) {
+                            commerceSessionResultTrans.setStatus(CommerceResultStatus.FAIL_MAX_ALLOWED_PURCHASES_FOR_THIS_PRODUCT);
+                            return commerceSessionResultTrans;
+                        }
+
+                        personaGiftsToDecrease.add(personaGiftEntity);
                     } else {
-                        if (productEntity.getCurrency().equals("CASH"))
-                            removeCash += (int) productEntity.getPrice();
-                        else
-                            removeBoost += (int) productEntity.getPrice();
+                        // We're not dealing with a gift, so just add the product price to the deduction values.
+                        if (productInBasket.getCurrency().equals("_NS")) {
+                            removeBoost += productInBasket.getPrice();
+                        } else {
+                            removeCash += productInBasket.getPrice();
+                        }
                     }
                 } else {
-                    commerceSessionResultTrans.setStatus(CommerceResultStatus.FAIL_INVALID_BASKET);
-                    return commerceSessionResultTrans;
+                    // If the product is not in the basket, we have to go to the inventory.
+                    InventoryItemEntity inventoryItemEntity = inventoryItemDAO.findByInventoryAndHash(inventoryEntity.getId(), addedItem.getKey());
+
+                    if (inventoryItemEntity == null) {
+                        // Not in the inventory, so bail out.
+                        commerceSessionResultTrans.setStatus(CommerceResultStatus.FAIL_INVALID_BASKET);
+                        return commerceSessionResultTrans;
+                    }
+
+                    inventoryItemsToDecrease.add(inventoryItemEntity);
                 }
             }
         }
@@ -159,14 +188,14 @@ public class CommerceBO {
 
                 if (productEntity != null) {
                     if (productEntity.getCurrency().equals("CASH"))
-                        addCash.addAndGet((int) productEntity.getResalePrice());
+                        addCash += ((int) productEntity.getResalePrice());
                     else
                         addBoost += (int) productEntity.getResalePrice();
                 }
             }
         }
 
-        double finalCash = personaEntity.getCash() - removeCash + addCash.get();
+        double finalCash = personaEntity.getCash() - removeCash + addCash;
         double finalBoost = personaEntity.getBoost() - removeBoost + addBoost;
 
         if (finalCash < 0 || finalBoost < 0) {
@@ -199,6 +228,11 @@ public class CommerceBO {
 
         for (InventoryItemEntity inventoryItemEntity : inventoryItemsToDecrease) {
             inventoryBO.decreaseItemCount(inventoryEntity, inventoryItemEntity);
+        }
+
+        for (PersonaGiftEntity personaGiftEntity : personaGiftsToDecrease) {
+            personaGiftEntity.setUseCount(personaGiftEntity.getUseCount() + 1);
+            personaGiftDAO.update(personaGiftEntity);
         }
 
         if (commerceSessionTrans.getEntitlementsToSell().getItems() != null) {

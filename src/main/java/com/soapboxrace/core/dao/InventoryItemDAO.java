@@ -58,10 +58,23 @@ public class InventoryItemDAO extends LongKeyedDAO<InventoryItemEntity> {
     }
 
     public InventoryItemEntity findByInventoryIdAndEntitlementTag(Long inventoryId, String entitlementTag) {
-        TypedQuery<InventoryItemEntity> query = entityManager.createNamedQuery("InventoryItemEntity" +
-                ".findAllByInventoryAndTag", InventoryItemEntity.class);
+        TypedQuery<InventoryItemEntity> query = entityManager.createNamedQuery("InventoryItemEntity.findAllByInventoryAndTag", InventoryItemEntity.class);
         query.setParameter("inventoryId", inventoryId);
         query.setParameter("entitlementTag", entitlementTag);
+
+        List<InventoryItemEntity> results = query.getResultList();
+
+        if (!results.isEmpty()) {
+            return results.get(0);
+        }
+
+        return null;
+    }
+
+    public InventoryItemEntity findByInventoryAndHash(Long inventoryId, Integer hash) {
+        TypedQuery<InventoryItemEntity> query = entityManager.createNamedQuery("InventoryItemEntity.findAllByInventoryAndHash", InventoryItemEntity.class);
+        query.setParameter("inventoryId", inventoryId);
+        query.setParameter("hash", hash);
 
         List<InventoryItemEntity> results = query.getResultList();
 
