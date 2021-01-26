@@ -97,7 +97,7 @@ public class CommerceBO {
 
         Multimap<Integer, Object> addedItems = ArrayListMultimap.create();
         Multimap<Integer, Object> removedItems = ArrayListMultimap.create();
-        List<InventoryItemEntity> inventoryItemsToDecrease = new ArrayList<>();
+        List<String> inventoryItemsToDecrease = new ArrayList<>();
         List<PersonaGiftEntity> personaGiftsToDecrease = new ArrayList<>();
 
         Collection<CustomPaintTrans> paintsAdded = paintDifferences.getAdded();
@@ -177,7 +177,7 @@ public class CommerceBO {
                         return commerceSessionResultTrans;
                     }
 
-                    inventoryItemsToDecrease.add(inventoryItemEntity);
+                    inventoryItemsToDecrease.add(inventoryItemEntity.getProductEntity().getEntitlementTag());
                 }
             }
         }
@@ -226,8 +226,8 @@ public class CommerceBO {
         personaEntity.setBoost(finalBoost);
         driverPersonaBO.updateCash(personaEntity, finalCash);
 
-        for (InventoryItemEntity inventoryItemEntity : inventoryItemsToDecrease) {
-            inventoryBO.decreaseItemCount(inventoryEntity, inventoryItemEntity);
+        for (String entitlementTag : inventoryItemsToDecrease) {
+            inventoryBO.decreaseItemCount(inventoryEntity, entitlementTag);
         }
 
         for (PersonaGiftEntity personaGiftEntity : personaGiftsToDecrease) {
