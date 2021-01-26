@@ -107,6 +107,9 @@ public class ProductEntity implements Serializable {
 
     private String rewardTitle;
 
+    @Column
+    private boolean isGift;
+
     public Long getId() {
         return id;
     }
@@ -401,5 +404,13 @@ public class ProductEntity implements Serializable {
 
     public void setRewardTitle(String rewardTitle) {
         this.rewardTitle = rewardTitle;
+    }
+
+    public boolean isGift() {
+        return isGift;
+    }
+
+    public void setGift(boolean gift) {
+        isGift = gift;
     }
 }

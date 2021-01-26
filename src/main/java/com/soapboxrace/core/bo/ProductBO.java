@@ -6,14 +6,8 @@
 
 package com.soapboxrace.core.bo;
 
-import com.soapboxrace.core.dao.CategoryDAO;
-import com.soapboxrace.core.dao.PersonaDAO;
-import com.soapboxrace.core.dao.ProductDAO;
-import com.soapboxrace.core.dao.VinylProductDAO;
-import com.soapboxrace.core.jpa.CategoryEntity;
-import com.soapboxrace.core.jpa.PersonaEntity;
-import com.soapboxrace.core.jpa.ProductEntity;
-import com.soapboxrace.core.jpa.VinylProductEntity;
+import com.soapboxrace.core.dao.*;
+import com.soapboxrace.core.jpa.*;
 import com.soapboxrace.jaxb.http.ArrayOfProductTrans;
 import com.soapboxrace.jaxb.http.ProductTrans;
 
@@ -36,6 +30,9 @@ public class ProductBO {
 
     @EJB
     private PersonaDAO personaDao;
+
+    @EJB
+    private PersonaGiftDAO personaGiftDAO;
 
     public List<ProductTrans> getProductTransList(List<ProductEntity> productEntities) {
         List<ProductTrans> productTransList = new ArrayList<>();
@@ -79,17 +76,31 @@ public class ProductBO {
     public List<ProductEntity> productsInCategory(String categoryName, String productType, Long personaId) {
         boolean premium = false;
         int level = 1;
+        PersonaEntity personaEntity = null;
         if (personaId != null && !personaId.equals(0L)) {
-            PersonaEntity personaEntity = personaDao.find(personaId);
+            personaEntity = personaDao.find(personaId);
             premium = personaEntity.getUser().isPremium();
             level = personaEntity.getLevel();
         }
         List<ProductEntity> productEntities = productDAO.findByLevelEnabled(categoryName, productType, level, true, premium);
+        List<ProductEntity> finalList = new ArrayList<>();
 
-        for (ProductEntity product : productEntities) {
-            product.getBundleItems().size();
+        for (ProductEntity productEntity : productEntities) {
+            productEntity.getBundleItems().size();
+            if (!productEntity.isGift()) {
+                finalList.add(productEntity);
+            } else if (personaEntity != null) {
+                PersonaGiftEntity personaGiftEntity = personaGiftDAO.findByPersonaIdAndProductId(personaId, productEntity.getProductId());
+                if (personaGiftEntity != null && personaGiftEntity.getUseCount() < personaGiftEntity.getGiftCodeEntity().getUseCount()) {
+                    // 0 boost = gift
+                    productEntity.setCurrency("_NS");
+                    productEntity.setPrice(0);
+                    finalList.add(productEntity);
+                }
+            }
         }
-        return productEntities;
+
+        return finalList;
     }
 
     public ProductEntity getRandomDrop(String productType) {

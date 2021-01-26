@@ -84,6 +84,9 @@ public class BasketBO {
     @EJB
     private AmplifierDAO amplifierDAO;
 
+    @EJB
+    private PersonaGiftDAO personaGiftDAO;
+
     public ProductEntity findProduct(String productId) {
         return productDao.findByProductId(productId);
     }
@@ -413,6 +416,12 @@ public class BasketBO {
                 return false;
             }
 
+            if (productEntity.isGift()) {
+                PersonaGiftEntity personaGiftEntity = personaGiftDAO.findByPersonaIdAndProductId(personaEntity.getPersonaId(), productEntity.getProductId());
+
+                return personaGiftEntity != null && personaGiftEntity.getUseCount() < personaGiftEntity.getGiftCodeEntity().getUseCount();
+            }
+
             float price = valueOverride == -1 ? productEntity.getPrice() : valueOverride;
 
             switch (productEntity.getCurrency()) {
@@ -447,5 +456,12 @@ public class BasketBO {
         }
 
         personaDao.update(personaEntity);
+
+        if (productEntity.isGift()) {
+            PersonaGiftEntity personaGiftEntity = personaGiftDAO.findByPersonaIdAndProductId(personaEntity.getPersonaId(), productEntity.getProductId());
+            Objects.requireNonNull(personaGiftEntity);
+            personaGiftEntity.setUseCount(personaGiftEntity.getUseCount() + 1);
+            personaGiftDAO.update(personaGiftEntity);
+        }
     }
 }
