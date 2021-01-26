@@ -1,5 +1,7 @@
 ALTER TABLE PRODUCT
     ADD COLUMN isGift BOOLEAN NOT NULL DEFAULT FALSE;
+# this table used to exist with a different structure
+DROP TABLE IF EXISTS GIFT_CODE;
 
 CREATE TABLE GIFT_CODE
 (
