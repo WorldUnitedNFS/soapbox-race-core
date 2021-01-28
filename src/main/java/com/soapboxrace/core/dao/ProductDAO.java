@@ -37,7 +37,7 @@ public class ProductDAO extends LongKeyedDAO<ProductEntity> {
         return query.getResultList();
     }
 
-    public ProductEntity findByProductId(String productId) {
+    public ProductEntity findByProductId(String productId, boolean throwOnMissing) {
         TypedQuery<ProductEntity> query = entityManager.createNamedQuery("ProductEntity.findByProductId",
                 ProductEntity.class);
         query.setParameter("productId", productId);
@@ -45,11 +45,18 @@ public class ProductDAO extends LongKeyedDAO<ProductEntity> {
         List<ProductEntity> results = query.getResultList();
 
         if (results.isEmpty()) {
-            throw new RuntimeException("Could not find product with ID: " + productId);
+            if (throwOnMissing) {
+                throw new RuntimeException("Could not find product with ID: " + productId);
+            }
+
+            return null;
         }
 
         return results.get(0);
-        //        return query.getSingleResult();
+    }
+
+    public ProductEntity findByProductId(String productId) {
+        return findByProductId(productId, true);
     }
 
     public ProductEntity findByEntitlementTag(String entitlementTag) {

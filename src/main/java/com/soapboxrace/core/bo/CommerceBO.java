@@ -17,10 +17,7 @@ import com.soapboxrace.jaxb.http.*;
 
 import javax.ejb.EJB;
 import javax.ejb.Stateless;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Stateless
@@ -60,8 +57,9 @@ public class CommerceBO {
 
     public CommerceSessionResultTrans doCommerce(CommerceSessionTrans commerceSessionTrans, Long personaId) {
         List<BasketItemTrans> basketItems = commerceSessionTrans.getBasket().getItems().getBasketItemTrans();
-        Map<Integer, ProductEntity> basketProducts = basketItems.stream().map(b -> productDAO.findByProductId(b.getProductId()))
-                .collect(Collectors.toMap(ProductEntity::getHash, p -> p));
+        Map<Integer, ProductEntity> basketProducts = basketItems.stream().map(b -> productDAO.findByProductId(b.getProductId(), false))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toMap(ProductEntity::getHash, p -> p, (p1, p2) -> p1));
 
         PersonaEntity personaEntity = personaDAO.find(personaId);
         CarEntity carEntity = personaBO.getDefaultCarEntity(personaId);
