@@ -89,6 +89,12 @@ public class MatchmakingBO {
                 continue;
             }
             PersonaEntity queuePersona = personaDAO.find(queuePersonaId);
+
+            if (queuePersona == null) {
+                removePlayerFromQueue(queuePersonaId);
+                continue;
+            }
+
             int queuePersonaLevel = queuePersona.getLevel();
 
             // Don't give players events that they can't join
