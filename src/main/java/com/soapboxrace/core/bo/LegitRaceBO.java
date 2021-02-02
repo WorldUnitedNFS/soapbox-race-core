@@ -6,6 +6,8 @@
 
 package com.soapboxrace.core.bo;
 
+import com.soapboxrace.core.dao.CarDAO;
+import com.soapboxrace.core.jpa.CarEntity;
 import com.soapboxrace.core.jpa.EventDataEntity;
 import com.soapboxrace.core.jpa.EventSessionEntity;
 import com.soapboxrace.jaxb.http.ArbitrationPacket;
@@ -21,13 +23,16 @@ public class LegitRaceBO {
     @EJB
     private SocialBO socialBo;
 
+    @EJB
+    private CarDAO carDAO;
+
     public boolean isLegit(Long activePersonaId, ArbitrationPacket arbitrationPacket,
                            EventSessionEntity sessionEntity,
                            EventDataEntity dataEntity) {
         long minimumTime = sessionEntity.getEvent().getLegitTime();
-        boolean legit = dataEntity.getServerTimeInMilliseconds() >= minimumTime;
+        boolean passesTimeCheck = dataEntity.getServerTimeInMilliseconds() >= minimumTime;
 
-        if (!legit) {
+        if (!passesTimeCheck) {
             socialBo.sendReport(0L, activePersonaId, 3,
                     String.format("Abnormal event time: %d (below minimum of %d on event %d; session %d)",
                             dataEntity.getServerTimeInMilliseconds(), minimumTime, sessionEntity.getEvent().getId(), sessionEntity.getId()),
@@ -61,6 +66,12 @@ public class LegitRaceBO {
 
                 return pursuitArbitrationPacket.getTopSpeed() != 0 || pursuitArbitrationPacket.getInfractions() == 0;
             }
+        }
+
+        if (sessionEntity.getEvent().getCarClassHash() != 607077938) {
+            CarEntity carEntity = carDAO.find(arbitrationPacket.getCarId());
+
+            return carEntity != null && carEntity.getCarClassHash() == sessionEntity.getEvent().getCarClassHash();
         }
 
         return true;
