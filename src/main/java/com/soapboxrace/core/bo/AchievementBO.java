@@ -193,11 +193,11 @@ public class AchievementBO {
                 personaAchievementRankDAO.findByPersonaIdAndAchievementRankId(personaId, achievementRankId);
 
         if (personaAchievementRankEntity == null) {
-            throw new IllegalArgumentException(personaId + " does not have " + achievementRankId);
+            throw new IllegalArgumentException(String.format("%d does not have a progression record for AchievementRank %d", personaId, achievementRankId));
         }
 
         if (!"RewardWaiting".equals(personaAchievementRankEntity.getState())) {
-            throw new IllegalArgumentException(personaId + " has no reward for " + achievementRankId);
+            throw new IllegalArgumentException(String.format("Persona %d cannot claim reward for AchievementRank %d. Current progression state is %s.", personaId, achievementRankId, personaAchievementRankEntity.getState()));
         }
 
         AchievementRewards achievementRewards = new AchievementRewards();
