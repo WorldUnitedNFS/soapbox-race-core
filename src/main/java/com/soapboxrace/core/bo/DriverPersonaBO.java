@@ -114,6 +114,11 @@ public class DriverPersonaBO {
 
     public ProfileData getPersonaInfo(Long personaId) {
         PersonaEntity personaEntity = personaDao.find(personaId);
+
+        if (personaEntity == null) {
+            throw new EngineException(EngineExceptionCode.PersonaNotFound, false);
+        }
+
         ProfileData profileData = castPersonaEntity(personaEntity);
 
         ArrayOfBadgePacket arrayOfBadgePacket = this.getBadges(personaId);
