@@ -47,6 +47,9 @@ public class EventBO {
         CarEntity carEntity = personaBO.getDefaultCarEntity(personaId);
 
         EventSessionEntity eventSessionEntity = eventSessionDao.find(eventSessionId);
+        if (eventSessionEntity == null) {
+            throw new EngineException(String.format("Attempted to create EventData for nonexistent session: %d (persona ID: %d)", eventSessionId, personaId), EngineExceptionCode.InvalidEntrantEventSession, true);
+        }
         EventDataEntity eventDataEntity = new EventDataEntity();
         eventDataEntity.setPersonaId(personaId);
         eventDataEntity.setEventSessionId(eventSessionId);
@@ -90,6 +93,9 @@ public class EventBO {
 
     public EventSessionEntity findEventSessionById(Long id) {
         EventSessionEntity eventSession = eventSessionDao.find(id);
+        if (eventSession == null) {
+            throw new EngineException(String.format("Could not find EventSession: %d", id), EngineExceptionCode.InvalidEntrantEventSession, true);
+        }
         Hibernate.initialize(eventSession.getEvent().getSingleplayerRewardConfig());
         Hibernate.initialize(eventSession.getEvent().getMultiplayerRewardConfig());
         Hibernate.initialize(eventSession.getEvent().getPrivateRewardConfig());
