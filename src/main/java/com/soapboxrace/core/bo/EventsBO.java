@@ -53,7 +53,7 @@ public class EventsBO {
     public TreasureHuntEventSession getTreasureHuntEventSession(Long activePersonaId) {
         TreasureHuntEntity treasureHuntEntity = treasureHuntDao.find(activePersonaId);
         if (treasureHuntEntity == null) {
-            driverPersonaBo.createThInformation(personaDao.find(activePersonaId));
+            driverPersonaBo.createThInformation(activePersonaId);
             return getTreasureHuntEventSession(activePersonaId);
         }
 

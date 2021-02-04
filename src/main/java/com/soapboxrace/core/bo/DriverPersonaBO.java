@@ -83,7 +83,7 @@ public class DriverPersonaBO {
         personaDao.insert(personaEntity);
 
         inventoryBO.createInventory(personaEntity);
-        createThInformation(personaEntity);
+        createThInformation(personaEntity.getPersonaId());
 
         return castPersonaEntity(personaEntity);
     }
@@ -224,12 +224,12 @@ public class DriverPersonaBO {
         return arrayOfString;
     }
 
-    public void createThInformation(PersonaEntity personaEntity) {
+    public void createThInformation(Long personaId) {
         TreasureHuntEntity treasureHuntEntity = new TreasureHuntEntity();
         treasureHuntEntity.setCoinsCollected(0);
         treasureHuntEntity.setIsStreakBroken(false);
         treasureHuntEntity.setNumCoins(parameterBO.getIntParam("TREASURE_HUNT_COINS", 15));
-        treasureHuntEntity.setPersonaId(personaEntity.getPersonaId());
+        treasureHuntEntity.setPersonaId(personaId);
         treasureHuntEntity.setSeed(new Random().nextInt());
         treasureHuntEntity.setStreak(1);
         treasureHuntEntity.setThDate(LocalDate.now());
