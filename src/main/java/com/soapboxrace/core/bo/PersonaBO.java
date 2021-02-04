@@ -11,6 +11,8 @@ import com.soapboxrace.core.dao.BadgeDefinitionDAO;
 import com.soapboxrace.core.dao.CarDAO;
 import com.soapboxrace.core.dao.PersonaBadgeDAO;
 import com.soapboxrace.core.dao.PersonaDAO;
+import com.soapboxrace.core.engine.EngineException;
+import com.soapboxrace.core.engine.EngineExceptionCode;
 import com.soapboxrace.core.jpa.BadgeDefinitionEntity;
 import com.soapboxrace.core.jpa.CarEntity;
 import com.soapboxrace.core.jpa.PersonaBadgeEntity;
@@ -146,6 +148,10 @@ public class PersonaBO {
     @SuppressWarnings("ResultOfMethodCallIgnored")
     public CarEntity getCarByOwnedCarId(Long ownedCarId) {
         CarEntity carEntity = carDAO.find(ownedCarId);
+
+        if (carEntity == null) {
+            throw new EngineException(EngineExceptionCode.CustomCarDoesntExist, false);
+        }
 
         // Load customcar data since we can't do it in the query
         carEntity.getPaints().size();
