@@ -8,6 +8,8 @@ package com.soapboxrace.core.api;
 
 import com.soapboxrace.core.api.util.Secured;
 import com.soapboxrace.core.bo.*;
+import com.soapboxrace.core.engine.EngineException;
+import com.soapboxrace.core.engine.EngineExceptionCode;
 import com.soapboxrace.core.jpa.EventSessionEntity;
 import com.soapboxrace.core.jpa.TokenSessionEntity;
 import com.soapboxrace.jaxb.http.LobbyInfo;
@@ -48,6 +50,12 @@ public class MatchMaking {
     public String joinQueueRaceNow() {
         Long activePersonaId = requestSessionInfo.getActivePersonaId();
         OwnedCarTrans defaultCar = personaBO.getDefaultCar(activePersonaId);
+
+        if (defaultCar == null) {
+            // who even knows what happened
+            throw new EngineException(EngineExceptionCode.PersonaCarIsNull, false);
+        }
+
         lobbyBO.joinFastLobby(activePersonaId, defaultCar.getCustomCar().getCarClassHash());
         return "";
     }
